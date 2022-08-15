@@ -1,23 +1,23 @@
 <template>
   <div class="login-container">
-    <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form" auto-complete="on" label-position="left">
+    <el-form ref="logForm" :model="loginForm" :rules="loginRules" class="login-form" label-position="left">
 
       <div class="title-container">
-        <h3 class="title">Login Form</h3>
+        <h3 class="title">登录</h3>
       </div>
 
-      <el-form-item prop="username">
+      <el-form-item prop="mobile">
         <span class="svg-container">
           <svg-icon icon-class="user" />
         </span>
         <el-input
-          ref="username"
-          v-model="loginForm.username"
-          placeholder="Username"
-          name="username"
+          ref="mobile"
+          v-model="loginForm.mobile"
+          placeholder="请输入手机号"
+          name="mobile"
           type="text"
           tabindex="1"
-          auto-complete="on"
+          auto-complete="off"
         />
       </el-form-item>
 
@@ -30,10 +30,10 @@
           ref="password"
           v-model="loginForm.password"
           :type="passwordType"
-          placeholder="Password"
+          placeholder="请输入密码"
           name="password"
           tabindex="2"
-          auto-complete="on"
+          auto-complete="off"
           @keyup.enter.native="handleLogin"
         />
         <span class="show-pwd" @click="showPwd">
@@ -41,45 +41,36 @@
         </span>
       </el-form-item>
 
-      <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">Login</el-button>
-
-      <div class="tips">
-        <span style="margin-right:20px;">username: admin</span>
-        <span> password: any</span>
-      </div>
-
+      <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.prevent="handleLogin">登录</el-button>
     </el-form>
   </div>
 </template>
 
 <script>
-import { validUsername } from '@/utils/validate'
-
+import { validUsermobile } from '@/utils/validate'
+import { mapActions } from 'vuex'
 export default {
   name: 'Login',
   data() {
-    const validateUsername = (rule, value, callback) => {
-      if (!validUsername(value)) {
-        callback(new Error('Please enter the correct user name'))
-      } else {
-        callback()
-      }
-    }
-    const validatePassword = (rule, value, callback) => {
-      if (value.length < 6) {
-        callback(new Error('The password can not be less than 6 digits'))
+    const validmobile = (rule, value, callback) => {
+      if (!validUsermobile(value)) {
+        callback('手机号格式不正确')
       } else {
         callback()
       }
     }
     return {
       loginForm: {
-        username: 'admin',
-        password: '111111'
+        mobile: '13800000002',
+        password: '123456'
       },
       loginRules: {
-        username: [{ required: true, trigger: 'blur', validator: validateUsername }],
-        password: [{ required: true, trigger: 'blur', validator: validatePassword }]
+        mobile: [
+          { required: true, message: '请输入手机号', trigger: 'blur' },
+          { validator: validmobile, trigger: 'blur' }],
+        password: [
+          { required: true, message: '请输入密码', trigger: 'blur' },
+          { min: 6, max: 10, message: '密码长度为6-10位', trigger: 'blur' }]
       },
       loading: false,
       passwordType: 'password',
@@ -89,12 +80,14 @@ export default {
   watch: {
     $route: {
       handler: function(route) {
+        console.log(route)
         this.redirect = route.query && route.query.redirect
       },
       immediate: true
     }
   },
   methods: {
+    ...mapActions(['user/login']),
     showPwd() {
       if (this.passwordType === 'password') {
         this.passwordType = ''
@@ -105,22 +98,35 @@ export default {
         this.$refs.password.focus()
       })
     },
-    handleLogin() {
-      this.$refs.loginForm.validate(valid => {
-        if (valid) {
-          this.loading = true
-          this.$store.dispatch('user/login', this.loginForm).then(() => {
-            this.$router.push({ path: this.redirect || '/' })
-            this.loading = false
-          }).catch(() => {
-            this.loading = false
-          })
-        } else {
-          console.log('error submit!!')
-          return false
-        }
-      })
+    async handleLogin() {
+      try {
+        await this.$refs.logForm.validate
+        this.loading = true
+        const res = await this['user/login'](this.loginForm)
+        console.log(res, '666')
+        this.$router.replace(this.redirect || '/')
+      } catch (error) {
+        console.log(error, '错误信息')
+      } finally {
+        this.loading = false
+      }
     }
+    // handleLogin() {
+    //   this.$refs.loginForm.validate(valid => {
+    //     if (valid) {
+    //       this.loading = true
+    //       this.$store.dispatch('user/login', this.loginForm).then(() => {
+    //         this.$router.push({ path: this.redirect || '/' })
+    //         this.loading = false
+    //       }).catch(() => {
+    //         this.loading = false
+    //       })
+    //     } else {
+    //       console.log('error submit!!')
+    //       return false
+    //     }
+    //   })
+    // }
   }
 }
 </script>
@@ -130,7 +136,7 @@ export default {
 /* Detail see https://github.com/PanJiaChen/vue-element-admin/pull/927 */
 
 $bg:#283443;
-$light_gray:#fff;
+$light_gray:#135d86;
 $cursor: #fff;
 
 @supports (-webkit-mask: none) and (not (cater-color: $cursor)) {
@@ -141,6 +147,7 @@ $cursor: #fff;
 
 /* reset element-ui css */
 .login-container {
+  background: transparent url(~@/assets/bgc.jpg) no-repeat fixed center center;
   .el-input {
     display: inline-block;
     height: 47px;
@@ -154,7 +161,7 @@ $cursor: #fff;
       padding: 12px 5px 12px 15px;
       color: $light_gray;
       height: 47px;
-      caret-color: $cursor;
+      // caret-color: $cursor;
 
       &:-webkit-autofill {
         box-shadow: 0 0 0px 1000px $bg inset !important;
@@ -163,11 +170,32 @@ $cursor: #fff;
     }
   }
 
-  .el-form-item {
+.el-form-item {
     border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.7); // 输入登录表单的背景色
     border-radius: 5px;
-    color: #454545;
+    color: #7b0808;
+  }
+   .el-form-item__error {
+    color: #e4ff00;
+  }
+  //改变placeholder颜色
+  .el-input::input-placeholder{color:  #135d86!important;}
+  // v8
+  ::-webkit-input-placeholder { /* WebKit browsers */
+    color: #135d86 !important;
+  }
+  :-moz-placeholder { /* Mozilla Firefox 4 to 18 */
+    color: #283443 !important;
+  }
+  ::-moz-placeholder { /* Mozilla Firefox 19  */
+    color: #283443 !important;
+  }
+  :-ms-input-placeholder { /* Internet Explorer 10  */
+    color: #283443 !important;
+  }
+  .svg-container {
+    color: #283443!important;
   }
 }
 </style>
